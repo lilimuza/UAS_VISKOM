@@ -1,0 +1,73 @@
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+from tensorflow.keras.utils import to_categorical
+import matplotlib.pyplot as plt
+
+# Membuat dataset gambar sederhana
+def create_dataset(num_images):
+    images = []
+    labels = []
+    for i in range(num_images):
+        if i % 2 == 0:
+            img = np.zeros((28, 28), dtype=np.uint8)
+            img[5:23, 5:23] = 255  # Gambar persegi putih di tengah
+            label = 0  # Kelas 0
+        else:
+            img = np.ones((28, 28), dtype=np.uint8) * 255
+            img[5:23, 5:23] = 0  # Gambar persegi hitam di tengah
+            label = 1  # Kelas 1
+        images.append(img)
+        labels.append(label)
+    images = np.array(images)
+    labels = np.array(labels)
+    return images, labels
+
+num_images = 10
+images, labels = create_dataset(num_images)
+
+# Menampilkan contoh gambar
+for i in range(2):
+    plt.imshow(images[i], cmap='gray')
+    plt.title(f'Label: {labels[i]}')
+    plt.show()
+
+# Menambahkan dimensi kanal (channel) dan normalisasi
+images = images.reshape((num_images, 28, 28, 1)).astype('float32') / 255.0
+labels = to_categorical(labels, num_classes=2)
+
+# Memisahkan data untuk training dan testing (80% training, 20% testing)
+train_size = int(0.8 * num_images)
+x_train, x_test = images[:train_size], images[train_size:]
+y_train, y_test = labels[:train_size], labels[train_size:]
+
+# Membangun model CNN
+model = Sequential()
+model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)))
+model.add(MaxPooling2D((2, 2)))
+model.add(Flatten())
+model.add(Dense(64, activation='relu'))
+model.add(Dense(2, activation='softmax'))
+
+# Kompilasi model
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+# Menampilkan ringkasan model
+model.summary()
+
+# Training model
+history = model.fit(x_train, y_train, epochs=10, batch_size=2, validation_split=0.2)
+
+# Evaluasi model pada data uji
+score, acc = model.evaluate(x_test, y_test, batch_size=2)
+print(f'Test score: {score}')
+print(f'Test accuracy: {acc}')
+
+# Prediksi pada data uji
+predictions = model.predict(x_test)
+# Mengubah probabilitas menjadi kelas (0 atau 1)
+predictions = np.argmax(predictions, axis=1)
+y_test_labels = np.argmax(y_test, axis=1)
+print(f'Predictions: {predictions}')
+print(f'Actual Labels: {y_test_labels}')
